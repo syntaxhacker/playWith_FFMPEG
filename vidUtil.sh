@@ -126,6 +126,9 @@ cleanup(){
 vidInfo(){
     ffprobe -v quiet -print_format json -show_format -show_streams naruto.mp4
 }
+streamToTwitch(){
+ffmpeg  -hide_banner  -i input.mp4 -vcodec libx264 -b:v 5M -acodec aac -b:a 256k -f flv rtmp://live.twitch.tv/app/$KEY
+}
 burnSubs(){
     # @param
     # 1 - ip video
