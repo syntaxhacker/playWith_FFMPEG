@@ -1,4 +1,11 @@
 #! /bin/bash
+
+fileInfo(){
+    FILENAME=$(basename -- "$1")
+    FILEEXT="${FILENAME##*.}"
+    FILENAME="${FILENAME%.*}"
+}
+
 dlSubs(){
     youtube-dl --list-subs $URL
     youtube-dl --write-sub --sub-lang en --skip-download $URL
@@ -7,52 +14,23 @@ dlPlaylist(){
     if [ -z "$1" ] || [ "$1" == "-h" ] ; then
         printf "params \n # 1 - youtube playlist url \n"
         exit 0
-    fi 
-
-# download vids
+    fi
     youtube-dl -f "bestvideo[height<="1080"]+bestaudio/best[height<="1080"]" -o "%(playlist_index)02d.%(ext)s" "$1"
-    # trim
-shopt -s nullglob
-for file in *.{webm,mkv,mp4}; do
-echo "FILE - $file"
-FILEEXT=`echo "$file" | cut -d'.' -f2`
-FILENAME=`echo "$file" | cut -d'.' -f1`
-if [ "$FILEEXT" == "mkv" ] ; then
-    ffpb -y -hwaccel cuvid -c:v h264_cuvid -i  "$file"  -ss "00:00:10.000" -to  "00:00:15.000" -c:v h264_nvenc -c copy  "trim.mkv"
-    rm $file
-    mv trim.mkv  $file
+    # shopt -s nullglob
+    done
     
-    ffpb -y -hwaccel cuvid -c:v h264_cuvid -i "$file" -strict -2 -c:v h264_nvenc -c copy  "conv.mp4"
-  
-    rm $file
-    mv conv.mp4 "$FILENAME".mp4
-    elif [ "$FILEEXT" == "webm" ] ; then
-    ffmpeg -hide_banner -y -hwaccel cuvid  -strict -2 -i  "$file"  -ss "00:00:10.000" -to  "00:00:15.000" -c:v h264_nvenc -c copy  "trim.webm"
-    rm $file
-    mv trim.webm $file
-    ffpb -hwaccel cuvid -y -i "$file"  -c:v h264_nvenc  "conv.mp4"
-    rm $file
-    mv conv.mp4 "$FILENAME".mp4
-    elif [ "$FILEEXT" == "mp4" ] ; then
-    ffpb -y -hwaccel cuvid -c:v h264_cuvid -i  "$file"  -ss "00:00:10.000" -to  "00:00:15.000" -c:v h264_nvenc -c copy  "trim.mp4"
-    rm $file
-    mv trim.mp4 $file
-fi
-done
-
-
-
+    
     FILE=$PWD/files.txt
     if test -f "$FILE"; then
         echo "deleting file ."
         rm $FILE
     fi
-
-for i in *mp4 ; do
-    echo "file '$i' " >> files.txt
-done
-# concat
-ffmpeg  -y -hwaccel cuvid -c:v h264_cuvid  -f concat -i files.txt -strict -2  -c:v h264_nvenc -c copy "out.mp4"
+    
+    for i in *mp4 ; do
+        echo "file '$i' " >> files.txt
+    done
+    # concat
+    ffmpeg  -y -hwaccel cuvid -c:v h264_cuvid  -f concat -i files.txt -strict -2  -c:v h264_nvenc -c copy "out.mp4"
     # download highest quality video with indexes as file name
     # youtube-dl -o "%(playlist_index)02d.%(ext)s" "$1"
     # download from networkk
@@ -64,15 +42,15 @@ vidSs(){
         printf "params \n # 1 - video name \n"
         exit 0
     fi
-
+    
     ffmpeg -ss 00:00:40 -i "$1" -vframes 1 -q:v 2 "$1".jpg > /dev/null 2>&1
     #     #take range based screenshots
-       ffmpeg -i "$1" -vframes 1 -q:v 2 -vf "select=not(mod(n\,100)),scale=-1:480,tile=3x5" -an "out.jpg" > /dev/null 2>&1
-
+    ffmpeg -i "$1" -vframes 1 -q:v 2 -vf "select=not(mod(n\,100)),scale=-1:480,tile=3x5" -an "out.jpg" > /dev/null 2>&1
+    
 }
 
 resizeVid(){
-     if [ -z "$1" ] || [ "$1" == "-h" ] ; then
+    if [ -z "$1" ] || [ "$1" == "-h" ] ; then
         printf "
         # 1 - ip video
         # 2 - resolution
@@ -100,70 +78,84 @@ makeLofi(){
         exit 0
     fi
     if [ "$USEGPU" = "true" ] ; then
-    ffmpeg  -hwaccel cuvid -c:v h264_cuvid -i "$1" -ignore_loop 0 -i "$2" -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -shortest -strict -2  -c:v h264_nvenc -threads 4 -c:a aac -b:a 192k -pix_fmt yuv420p -shortest lofi.mp4
+        ffmpeg  -hwaccel cuvid -c:v h264_cuvid -i "$1" -ignore_loop 0 -i "$2" -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -shortest -strict -2  -c:v h264_nvenc -threads 4 -c:a aac -b:a 192k -pix_fmt yuv420p -shortest lofi.mp4
     else
-    ffmpeg -i "$1" -ignore_loop 0 -i "$2" -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -shortest -strict -2 -c:v libx264 -threads 4 -c:a aac -b:a 192k -pix_fmt yuv420p -shortest lofi.mp4
+        ffmpeg -i "$1" -ignore_loop 0 -i "$2" -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" -shortest -strict -2 -c:v libx264 -threads 4 -c:a aac -b:a 192k -pix_fmt yuv420p -shortest lofi.mp4
     fi
 }
 
 trimVid(){
     # cpu
-    ffmpeg -i "BigBuckBunny.mp4" -ss "00:00:00.000" -to "00:00:30.000" -c copy out.mp4
+    ffmpeg -i "$1" -ss "00:00:00.000" -to "00:00:30.000" -c copy "$1"_out.mkv
 }
 
 cleanup(){
     rm *.mkv
+    rm *.m4a
     rm *.zip
     rm *.txt
     rm *.webm
     rm *.mp4
+    rm *.srt
     rm *.mp3
     rm *.gif
     rm *.ass
     rm *.vtt
     rm *.jpg
 }
+
 vidInfo(){
     ffprobe -v quiet -print_format json -show_format -show_streams naruto.mp4
 }
 streamToTwitch(){
-ffmpeg  -hide_banner  -i input.mp4 -vcodec libx264 -b:v 5M -acodec aac -b:a 256k -f flv rtmp://live.twitch.tv/app/$KEY
+    ffmpeg  -hide_banner  -i $1 -vcodec libx264 -b:v 5M -acodec aac -b:a 256k -f flv rtmp://live.twitch.tv/app/$KEY
 }
 burnSubs(){
-    # @param
-    # 1 - ip video
-    # 2 - out video
-    # 3 - subtitle
     if [ -z "$1" ] || [ "$1" == "-h" ] ; then
-        printf "params \n # 1 - ip video \t # 2 - out video \t # 3 - subtitle name \n"
+        printf "params \n1 - Input vid \t 2 - Input Subtitle\n"
         exit 0
     fi
+    if [ -z "$2" ] ; then
+        printf "Input valid Subtitle\n"
+        exit 0
+    fi
+    fileInfo "$1"
+    if [[ ! $FILEEXT =~ ^("mkv"|"mp4")$ ]]; then
+        printf "provide valid Input mp4 or mkv file\n"
+        exit 0
+    fi
+    fileInfo "$2"
+    if [[ ! $FILEEXT =~ ^("vtt"|"srt")$ ]]; then
+        printf "provide valid Input vtt or srt file\n"
+        exit 0
+    fi
+    ffpb -y -hide_banner -loglevel panic -i "$2" "sub.ass"
+    fileInfo "$1"
     if [ "$USEGPU" = "true" ] ; then
-        ffpb -i "$3".vtt "$3".ass
-        ffpb -i "$1" -c:v h264_nvenc -c:a copy -vf  "subtitles=sub.ass:force_style='FontName=arial,FontSize=24'" -b:v 5M "$2"
+        ffpb -y -i "$1" -c:v h264_nvenc -c:a copy -vf  "subtitles=sub.ass:force_style='FontName=arial,FontSize=24'"  "$FILENAME"_out.mkv
+    else
+        ffpb -y -i "$1" -c:v libx264 -c:a copy -vf  "subtitles=sub.ass:force_style='FontName=arial,FontSize=20'"  "$FILENAME"_out.mkv
     fi
     # !ffpb -y -vsync 0 -hwaccel cuvid -hwaccel_device 0 -c:v h264_cuvid  -i name.mp4 ass="$3".ass "gpusubbed.mp4"
 }
 combineVidList() {
-    ffmpeg -y -f concat -i files.txt -c copy "out".mp4
+    ffmpeg -y -f concat -i files.txt -c copy "out.mkv"
 }
-
-
 galleryDownload(){
     vcsi "$1" \
     -t \
     -w 850 \
-    -g 2x2 \
+    -g 3x3 \
     --background-color 090909 \
     --metadata-font-color ffffff \
     --end-delay-percent 20 \
     # --metadata-font "/usr/share/fonts/truetype/humor-sans/Humor-Sans.ttf"
 }
 
-if [ "$1" == "pkgs" ]; then
-    pip install vcsi ffpb pytube3 2>&1
-    sudo curl -L https://yt-dl.org/downloads/latest/youtube-dl -o /usr/local/bin/youtube-dl 2>&1
-    sudo chmod a+rx /usr/local/bin/youtube-dl 2>&1
+if [ "$1" == "-i" ]; then
+    pip3 install vcsi ffpb pytube3
+    sudo curl -L https://yt-dl.org/downloads/latest/youtube-dl -o /usr/local/bin/youtube-dl
+    sudo chmod a+rx /usr/local/bin/youtube-dl
     exit 0
 fi
 # compute with cpu or gpu
@@ -190,7 +182,7 @@ fi
 
 if [ "$1" == "-h" ] ; then
     echo "
-USAGE ./vidUtil.sh [ARGS]
+USAGE ./vidUtil.sh [ARGS] file
 -g :   Generate Gallery
 -d :   Cleanup
 -ss :   Take screenshot
@@ -205,7 +197,7 @@ case "$1" in
         dlPlaylist "$2"
     ;;
     "-subs")
-        burnSubs "$2"
+        burnSubs "$2" "$3"
     ;;
     "-c")
         combineVidList
@@ -220,8 +212,8 @@ case "$1" in
         galleryDownload "$2"
     ;;
     *)
-        echo -n "unknown command"
-    printf "No arguments provided! \nUse -h for Usage\n"
-    exit 0
+        echo -n "Unknown Command"
+        printf "No arguments provided! \nUse -h for Usage\n"
+        exit 0
     ;;
 esac
