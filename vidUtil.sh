@@ -17,7 +17,6 @@ dlPlaylist(){
     fi
     youtube-dl -f "bestvideo[height<="1080"]+bestaudio/best[height<="1080"]" -o "%(playlist_index)02d.%(ext)s" "$1"
     # shopt -s nullglob
-    done
     
     
     FILE=$PWD/files.txt
@@ -183,6 +182,7 @@ fi
 if [ "$1" == "-h" ] ; then
     echo "
 USAGE ./vidUtil.sh [ARGS] file
+-i : install pip dependencies
 -g :   Generate Gallery
 -d :   Cleanup
 -ss :   Take screenshot
