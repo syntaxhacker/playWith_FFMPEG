@@ -217,3 +217,9 @@ case "$1" in
         exit 0
     ;;
 esac
+
+
+
+!ffpb  -i out.mkv -y  -map 0:v:0 -map 0:a:3 -pix_fmt yuv420p  -c:v h264_nvenc out2.mkv
+
+/tmp ffpb -i Godzilla.King.of.the.Monsters.2019.1080p.BluRay.x265-RARBG.mp4 -i telu.mkv  -map 0:v:0 -map 1:a:1 -map 1:a:3 -map 1:s:0 -map 1:s:1 -c copy out.mkv
